@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.2.0
+
+Create a build statusbar item after first build
+
 ### 1.1.0
 
 Create an output channel to show errors clearly

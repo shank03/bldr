@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 let ch = vscode.window.createOutputChannel("C/C++ Build");
+let statusItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
@@ -30,7 +31,15 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage("Please open active C/C++ file");
             }
         }
+
+        if (!statusItem) {
+            createStatusItem(context);
+        }
     });
+
+    if (!statusItem) {
+        createStatusItem(context);
+    }
 
     context.subscriptions.push(disposable);
 }
@@ -38,6 +47,39 @@ export function activate(context: vscode.ExtensionContext) {
 // this method is called when your extension is deactivated
 export function deactivate() {
     ch.dispose();
+    if (statusItem) {
+        statusItem.hide();
+        statusItem.dispose();
+    }
+}
+
+function createStatusItem(context: vscode.ExtensionContext) {
+    statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    statusItem.command = 'bldr.build';
+    statusItem.text = "$(debug-alt-small) Build and Run active file [C/C++]";
+    context.subscriptions.push(statusItem);
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateStatusItem));
+    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateStatusItem));
+    updateStatusItem();
+}
+
+function updateStatusItem() {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+        var rootPath = vscode.workspace.rootPath;
+        var file = editor.document.fileName;
+
+        if (typeof rootPath !== 'undefined' && (file.endsWith(".cpp") || file.endsWith(".c"))) {
+            file = file.substring(rootPath.length + 1).replace('\\', '/');
+            statusItem.text = "$(debug-alt-small) Build and Run [" + file + "]";
+            statusItem.show();
+        } else {
+            statusItem.hide();
+        }
+    } else {
+        statusItem.hide();
+    }
 }
 
 function run(t: vscode.Terminal, file: string, rootPath: string) {
