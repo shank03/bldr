@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+let ch = vscode.window.createOutputChannel("C/C++ Build");
+
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
         const editor = vscode.window.activeTextEditor;
@@ -21,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
                     if (terminal) {
                         run(terminal, file, rootPath);
                     } else {
-                        vscode.window.showErrorMessage("Bash shell not found");
+                        vscode.window.showInformationMessage("Bash shell not found");
                     }
                 }
             } else {
@@ -34,7 +36,9 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+    ch.dispose();
+}
 
 function run(t: vscode.Terminal, file: string, rootPath: string) {
     file = file.replace('\\', '/');
@@ -53,11 +57,18 @@ function run(t: vscode.Terminal, file: string, rootPath: string) {
         out += ".exe";
     }
 
+    ch.show();
+    ch.clear();
+    ch.appendLine("Building " + file);
+
     const { exec } = require('child_process');
-    exec("cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file + " -Werror", (err: any, _stdout: any, stderr: any) => {
+    exec("cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file + " -Werror", (err: any, stdout: any, stderr: any) => {
         if (err) {
-            vscode.window.showErrorMessage(stderr);
+            ch.appendLine(stderr);
         } else {
+            ch.clear();
+            ch.hide();
+
             t.show();
             t.sendText("clear");
             t.sendText("./" + out);

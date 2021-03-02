@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.1.0
+
+Create an output channel to show errors clearly
+
 ### 1.0.0
 
 Initial release of Builder
