@@ -17,6 +17,11 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.3.0
+
+- Remove the statusbar item
+- Add "Run" button at the end of tabs instead
+
 ### 1.2.0
 
 Create a build statusbar item after first build

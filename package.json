@@ -3,7 +3,7 @@
 	"displayName": "Builder",
 	"description": "Build and run C/C++ files.",
 	"publisher": "shank03",
-	"version": "1.2.0",
+	"version": "1.3.0",
 	"engines": {
 		"vscode": "^1.53.0"
 	},
@@ -18,9 +18,21 @@
 		"commands": [
 			{
 				"command": "bldr.build",
-				"title": "Build and Run active file [C/C++]"
+				"title": "Build and Run active file [C/C++]",
+				"icon": {
+					"light": "./images/run.svg",
+					"dark": "./images/run-dark.svg"
+				}
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "bldr.build",
+					"group": "navigation"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
