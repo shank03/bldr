@@ -29,7 +29,8 @@
 			"editor/title": [
 				{
 					"command": "bldr.build",
-					"group": "navigation"
+					"group": "navigation",
+					"when": "editorLangId == c || editorLangId == cpp"
 				}
 			]
 		}
