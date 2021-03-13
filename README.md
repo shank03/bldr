@@ -17,6 +17,11 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.4.0
+
+- Improve terminal and platform recognition
+- Provide option to select terminal to run on when more than one terminal are open
+
 ### 1.3.0
 
 - Remove the statusbar item

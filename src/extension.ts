@@ -19,12 +19,11 @@ export function activate(context: vscode.ExtensionContext) {
                     createFileOrFolder('folder', "out");
                 }
                 if (ensureTerminalExists()) {
-                    const terminal = getTerminal();
-                    if (terminal) {
-                        run(terminal, file, rootPath);
-                    } else {
-                        vscode.window.showInformationMessage("Bash shell not found");
-                    }
+                    selectTerminal().then(it => {
+                        if (it && typeof rootPath !== 'undefined') {
+                            run(it, file, rootPath);
+                        }
+                    });
                 }
             } else {
                 vscode.window.showInformationMessage("Please open active C/C++ file");
@@ -41,19 +40,22 @@ export function deactivate() {
 }
 
 function run(t: vscode.Terminal, file: string, rootPath: string) {
-    file = file.replace('\\', '/');
+    var separator = '\\';
+    if (isTermLinux(t.name)) {
+        separator = '/'
+        file = file.replace('\\', separator);
+    }
     const ext = file.split('.')[1];
 
-    let platform = os.type();
-
-    if (file.includes('/')) {
-        const dir = file.substring(0, file.lastIndexOf('/'));
-        if (!fs.existsSync(rootPath + "/out/" + dir)) {
-            createFileOrFolder('folder', "out/" + dir);
+    if (file.includes(separator)) {
+        const dir = file.substring(0, file.lastIndexOf(separator));
+        if (!fs.existsSync(rootPath + separator + "out" + separator + dir)) {
+            createFileOrFolder('folder', "out" + separator + dir);
         }
     }
-    var out = "out/" + file.split('.')[0];
-    if (platform !== "Linux") {
+    var out = "out" + separator + file.split('.')[0];
+
+    if (os.type().toLocaleLowerCase().includes("windows")) {
         out += ".exe";
     }
 
@@ -62,7 +64,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string) {
     ch.appendLine("Building " + file);
 
     const { exec } = require('child_process');
-    exec("cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file + " -Werror", (err: any, stdout: any, stderr: any) => {
+    exec("cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file + " -Werror", (err: any, stdout: string, stderr: any) => {
         if (err) {
             ch.appendLine(stderr);
         } else {
@@ -70,22 +72,57 @@ function run(t: vscode.Terminal, file: string, rootPath: string) {
             ch.hide();
 
             t.show();
-            t.sendText("clear");
-            t.sendText("./" + out);
+            if (isTermLinux(t.name)) {
+                t.sendText("clear");
+            }
+            t.sendText("." + separator + out);
         }
     });
 }
 
+function isTermLinux(name: string) {
+    return name !== "cmd" && name !== "powershell";
+}
+
+function getTermDetail(name: string) {
+    switch (name) {
+        case "bash":
+            return "Bash";
+
+        case "wsl":
+            return "WSL Bash";
+
+        case "cmd":
+            return "Command Prompt";
+
+        case "powershell":
+            return "Windows Powershell";
+
+        default:
+            return "N/A";
+    }
+}
+
 //------------------------------
 
-function getTerminal(): vscode.Terminal | undefined {
-    const terminals = <vscode.Terminal[]>(<any>vscode.window).terminals;
-    for (let i = 0; i < terminals.length; i++) {
-        if (terminals[i].name === 'bash') {
-            return terminals[i];
-        }
+async function selectTerminal(): Promise<vscode.Terminal | undefined> {
+    interface PickItem extends vscode.QuickPickItem {
+        terminal: vscode.Terminal;
     }
-    return undefined;
+    const terminals = <vscode.Terminal[]>(<any>vscode.window).terminals;
+    if (terminals.length >= 2) {
+        const items: PickItem[] = terminals.map(t => {
+            return {
+                label: t.name,
+                detail: getTermDetail(t.name),
+                terminal: t,
+            };
+        });
+        const it = await vscode.window.showQuickPick(items);
+        return it ? it.terminal : undefined;
+    } else {
+        return terminals[0];
+    }
 }
 
 function ensureTerminalExists(): boolean {
