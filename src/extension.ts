@@ -24,6 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
                             run(it, file, rootPath);
                         }
                     });
+                } else {
+                    vscode.window.showInformationMessage('No active terminals');
                 }
             } else {
                 vscode.window.showInformationMessage("Please open active C/C++ file");
@@ -31,7 +33,20 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let showTerm = vscode.commands.registerCommand('bldr.terminal', () => {
+        if (ensureTerminalExists()) {
+            selectTerminal().then(it => {
+                if (it) {
+                    it.show();
+                }
+            });
+        } else {
+            vscode.commands.executeCommand('workbench.action.terminal.new');
+        }
+    });
+
     context.subscriptions.push(disposable);
+    context.subscriptions.push(showTerm);
 }
 
 // this method is called when your extension is deactivated
@@ -126,11 +141,7 @@ async function selectTerminal(): Promise<vscode.Terminal | undefined> {
 }
 
 function ensureTerminalExists(): boolean {
-    if ((<any>vscode.window).terminals.length === 0) {
-        vscode.window.showErrorMessage('No active terminals');
-        return false;
-    }
-    return true;
+    return (<any>vscode.window).terminals.length !== 0;
 }
 
 //--------------------------------

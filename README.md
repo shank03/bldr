@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.5.0
+
+Added a button to show terminal
+
 ### 1.4.0
 
 - Improve terminal and platform recognition

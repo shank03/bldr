@@ -3,7 +3,11 @@
 	"displayName": "Builder",
 	"description": "Build and run C/C++ files.",
 	"publisher": "shank03",
-	"version": "1.4.0",
+	"version": "1.5.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/shank03/bldr.git"
+	},
 	"engines": {
 		"vscode": "^1.53.0"
 	},
@@ -11,7 +15,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:bldr.build"
+		"onCommand:bldr.build",
+		"onCommand:bldr.terminal"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -23,6 +28,14 @@
 					"light": "./images/run.svg",
 					"dark": "./images/run-dark.svg"
 				}
+			},
+			{
+				"command": "bldr.terminal",
+				"title": "Show terminal",
+				"icon": {
+					"light": "./images/terminal.svg",
+					"dark": "./images/terminal-dark.svg"
+				}
 			}
 		],
 		"menus": {
@@ -31,6 +44,10 @@
 					"command": "bldr.build",
 					"group": "navigation",
 					"when": "editorLangId == c || editorLangId == cpp"
+				},
+				{
+					"command": "bldr.terminal",
+					"group": "navigation"
 				}
 			]
 		}
