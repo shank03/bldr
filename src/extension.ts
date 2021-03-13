@@ -19,13 +19,11 @@ export function activate(context: vscode.ExtensionContext) {
                     createFileOrFolder('folder', "out");
                 }
                 if (ensureTerminalExists()) {
-                    selectTerminal().then(it => {
-                        if (it && typeof rootPath !== 'undefined') {
-                            run(it, file, rootPath);
-                        }
-                    });
+                    invoke(rootPath, file);
                 } else {
-                    vscode.window.showInformationMessage('No active terminals');
+                    vscode.commands.executeCommand('workbench.action.terminal.new').then(_ => {
+                        invoke(rootPath, file);
+                    });
                 }
             } else {
                 vscode.window.showInformationMessage("Please open active C/C++ file");
@@ -52,6 +50,14 @@ export function activate(context: vscode.ExtensionContext) {
 // this method is called when your extension is deactivated
 export function deactivate() {
     ch.dispose();
+}
+
+function invoke(rootPath: string | undefined, file: string) {
+    selectTerminal().then(it => {
+        if (it && typeof rootPath !== 'undefined') {
+            run(it, file, rootPath);
+        }
+    });
 }
 
 function run(t: vscode.Terminal, file: string, rootPath: string) {
