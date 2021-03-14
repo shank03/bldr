@@ -3,7 +3,7 @@
 	"displayName": "Builder",
 	"description": "Build and run C/C++ files.",
 	"publisher": "shank03",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/shank03/bldr.git"
@@ -16,7 +16,8 @@
 	],
 	"activationEvents": [
 		"onCommand:bldr.build",
-		"onCommand:bldr.terminal"
+		"onCommand:bldr.terminal",
+		"onCommand:bldr.run.debug"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -36,6 +37,14 @@
 					"light": "./images/terminal.svg",
 					"dark": "./images/terminal-dark.svg"
 				}
+			},
+			{
+				"command": "bldr.run.debug",
+				"title": "Debug active file",
+				"icon": {
+					"light": "./images/run-debug.svg",
+					"dark": "./images/run-debug-dark.svg"
+				}
 			}
 		],
 		"menus": {
@@ -46,12 +55,20 @@
 					"when": "editorLangId == c || editorLangId == cpp"
 				},
 				{
+					"command": "bldr.run.debug",
+					"group": "navigation",
+					"when": "editorLangId == c || editorLangId == cpp"
+				},
+				{
 					"command": "bldr.terminal",
 					"group": "navigation"
 				}
 			]
 		}
 	},
+	"extensionPack": [
+		"ms-vscode.cpptools"
+	],
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",

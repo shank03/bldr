@@ -43,8 +43,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let debugFile = vscode.commands.registerCommand('bldr.run.debug', () => {
+        vscode.commands.executeCommand('C_Cpp.BuildAndDebugActiveFile');
+    });
+
     context.subscriptions.push(disposable);
     context.subscriptions.push(showTerm);
+    context.subscriptions.push(debugFile);
 }
 
 // this method is called when your extension is deactivated

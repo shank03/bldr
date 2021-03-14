@@ -17,6 +17,11 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.6.0
+
+Added a button to debug active file.<br>
+Required extension: `ms-vscode.cpptools`
+
 ### 1.5.0
 
 Added a button to show terminal
