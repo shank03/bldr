@@ -3,7 +3,7 @@
 	"displayName": "Builder",
 	"description": "Build and run C/C++ files.",
 	"publisher": "shank03",
-	"version": "1.6.0",
+	"version": "1.7.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/shank03/bldr.git"

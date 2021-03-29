@@ -19,10 +19,10 @@ export function activate(context: vscode.ExtensionContext) {
                     createFileOrFolder('folder', "out");
                 }
                 if (ensureTerminalExists()) {
-                    invoke(rootPath, file);
+                    invoke(rootPath, file, editor);
                 } else {
                     vscode.commands.executeCommand('workbench.action.terminal.new').then(_ => {
-                        invoke(rootPath, file);
+                        invoke(rootPath, file, editor);
                     });
                 }
             } else {
@@ -57,24 +57,27 @@ export function deactivate() {
     ch.dispose();
 }
 
-function invoke(rootPath: string | undefined, file: string) {
+function invoke(rootPath: string | undefined, file: string, editor: vscode.TextEditor) {
     selectTerminal().then(it => {
         if (it && typeof rootPath !== 'undefined') {
-            run(it, file, rootPath);
+            processHeader(it, file, rootPath, editor);
         }
     });
 }
 
-function run(t: vscode.Terminal, file: string, rootPath: string) {
+function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>) {
     var separator = '\\';
     if (isTermLinux(t.name)) {
         separator = '/'
-        file = file.replace('\\', separator);
+        const sepCount = file.split('\\').length
+        for (let i = 0; i < sepCount; i++) {
+            file = file.replace('\\', separator)
+        }
     }
     const ext = file.split('.')[1];
+    const dir = file.substring(0, file.lastIndexOf(separator));
 
     if (file.includes(separator)) {
-        const dir = file.substring(0, file.lastIndexOf(separator));
         if (!fs.existsSync(rootPath + separator + "out" + separator + dir)) {
             createFileOrFolder('folder', "out" + separator + dir);
         }
@@ -90,11 +93,17 @@ function run(t: vscode.Terminal, file: string, rootPath: string) {
     ch.appendLine("Building " + file);
 
     const { exec } = require('child_process');
-    exec("cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file + " -Werror", (err: any, stdout: string, stderr: any) => {
+    var buildCmd = "cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file;
+    for (var header of headersImp) {
+        buildCmd += " " + dir + separator + header;
+    }
+    buildCmd += " -Werror"
+    ch.appendLine("Command:")
+    ch.appendLine(buildCmd)
+    exec(buildCmd, (err: any, _stdout: string, stderr: any) => {
         if (err) {
             ch.appendLine(stderr);
         } else {
-            ch.clear();
             ch.hide();
 
             t.show();
@@ -104,6 +113,46 @@ function run(t: vscode.Terminal, file: string, rootPath: string) {
             t.sendText("." + separator + out);
         }
     });
+}
+
+function processHeader(t: vscode.Terminal, file: string, rootPath: string, editor: vscode.TextEditor) {
+    if (file.endsWith(".c")) {
+        run(t, file, rootPath, []);
+        return;
+    }
+    const separator = os.type().toLocaleLowerCase().includes("windows") ? '\\' : '/';
+
+    var foundHeaders: Array<string> = [];
+    editor.document.getText().split('\n').forEach(it => {
+        it = it.trim()
+        if (it.startsWith("#include") && it.includes("\"")) {
+            foundHeaders.push(it)
+        }
+    })
+
+    const projectRoot = rootPath + separator + file.substring(0, file.lastIndexOf(separator)) + separator
+
+    let i = 0;
+    var localHeaders: Array<string> = [];
+    const inputHeader = (header: string) => {
+        if (i < foundHeaders.length) {
+            vscode.window.showInputBox({
+                placeHolder: "Enter implementation file name for " + header,
+                validateInput: text => {
+                    return fs.existsSync(projectRoot + text) && text.endsWith(".cpp") ? null : text;
+                }
+            }).then(it => {
+                if (typeof it !== 'undefined') {
+                    localHeaders.push(it);
+                    i++;
+                    inputHeader(foundHeaders[i]);
+                }
+            });
+        } else {
+            run(t, file, rootPath, localHeaders);
+        }
+    };
+    inputHeader(foundHeaders[i]);
 }
 
 function isTermLinux(name: string) {

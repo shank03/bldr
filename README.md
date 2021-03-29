@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.7.0
+
+Added feature to handle headers in `cpp` files
+
 ### 1.6.0
 
 Added a button to debug active file.<br>
