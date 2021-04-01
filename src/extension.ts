@@ -97,7 +97,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     for (var header of headersImp) {
         buildCmd += " " + dir + separator + header;
     }
-    buildCmd += " -Werror"
+    buildCmd += " -Wall"
     ch.appendLine("Command:")
     ch.appendLine(buildCmd)
     exec(buildCmd, (err: any, _stdout: string, stderr: any) => {
@@ -126,7 +126,7 @@ function processHeader(t: vscode.Terminal, file: string, rootPath: string, edito
     editor.document.getText().split('\n').forEach(it => {
         it = it.trim()
         if (it.startsWith("#include") && it.includes("\"")) {
-            foundHeaders.push(it)
+            foundHeaders.push(it.substring(it.indexOf('\"', 0) + 1, it.lastIndexOf('\"')));
         }
     })
 
@@ -136,18 +136,28 @@ function processHeader(t: vscode.Terminal, file: string, rootPath: string, edito
     var localHeaders: Array<string> = [];
     const inputHeader = (header: string) => {
         if (i < foundHeaders.length) {
-            vscode.window.showInputBox({
-                placeHolder: "Enter implementation file name for " + header,
-                validateInput: text => {
-                    return fs.existsSync(projectRoot + text) && text.endsWith(".cpp") ? null : text;
-                }
-            }).then(it => {
-                if (typeof it !== 'undefined') {
-                    localHeaders.push(it);
+            if (fs.existsSync(projectRoot + header)) {
+                if (fs.existsSync(projectRoot + header.split('.')[0] + ".cpp")) {
                     i++;
+                    localHeaders.push(header.split('.')[0] + ".cpp");
                     inputHeader(foundHeaders[i]);
+                } else {
+                    vscode.window.showInputBox({
+                        placeHolder: "Enter implementation file name for " + header,
+                        validateInput: text => {
+                            return fs.existsSync(projectRoot + text) && text.endsWith(".cpp") ? null : text;
+                        }
+                    }).then(it => {
+                        if (typeof it !== 'undefined') {
+                            localHeaders.push(it);
+                            i++;
+                            inputHeader(foundHeaders[i]);
+                        }
+                    });
                 }
-            });
+            } else {
+                vscode.window.showWarningMessage(header + " not found");
+            }
         } else {
             run(t, file, rootPath, localHeaders);
         }
