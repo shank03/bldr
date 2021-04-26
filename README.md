@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.8.0
+
+Added command to generate `.clang-format` for formatting C/C++ code
+
 ### 1.7.0
 
 Added feature to handle headers in `cpp` files
