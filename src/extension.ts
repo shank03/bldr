@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 let ch = vscode.window.createOutputChannel("C/C++ Build");
+const TAG = "Build [C/C++]:";
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
@@ -11,11 +12,14 @@ export function activate(context: vscode.ExtensionContext) {
         if (editor) {
             var rootPath = vscode.workspace.rootPath;
             var file = editor.document.fileName;
+            console.log(`${TAG} rootPath: ${rootPath}; filePath: ${file}`);
 
             if (typeof rootPath !== 'undefined' && (file.endsWith(".cpp") || file.endsWith(".c"))) {
                 file = file.substring(rootPath.length + 1);
+                console.log(`${TAG} file: ${file}`);
 
                 if (!fs.existsSync(rootPath + "/out")) {
+                    console.log(`${TAG} out folder doesn't exist... creating`);
                     createFileOrFolder('folder', "out");
                 }
                 if (ensureTerminalExists()) {
@@ -105,6 +109,24 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     buildCmd += " -Wall"
     ch.appendLine("Command:")
     ch.appendLine(buildCmd)
+    if (os.type().toLocaleLowerCase().includes("windows")) {
+        console.log(`${TAG} run: windows`);
+        exec("cd", (_: any, stdout: string, __: any) => {
+            console.log(`${TAG} run: rootPart: ${rootPath.charAt(0).toLowerCase()}; currPart: ${stdout.charAt(0).toLowerCase()}`);
+            if (rootPath.charAt(0).toLowerCase() !== stdout.charAt(0).toLowerCase()) {
+                console.log(`${TAG} Partions not same`)
+                buildCmd = rootPath.charAt(0) + ": && " + buildCmd;
+            }
+            build(buildCmd, separator, out, t);
+        });
+    } else {
+        build(buildCmd, separator, out, t);
+    }
+}
+
+function build(buildCmd: string, separator: string, out: string, t: vscode.Terminal) {
+    const { exec } = require('child_process');
+    console.log(`${TAG} build: buildCmd: ${buildCmd}`);
     exec(buildCmd, (err: any, _stdout: string, stderr: any) => {
         if (err) {
             ch.appendLine(stderr);
