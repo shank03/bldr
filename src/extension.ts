@@ -5,6 +5,7 @@ import * as os from 'os';
 
 let ch = vscode.window.createOutputChannel("C/C++ Build");
 const TAG = "Build [C/C++]:";
+const LIB_TAG = "// libs:";
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
@@ -69,12 +70,12 @@ export function deactivate() {
 function invoke(rootPath: string | undefined, file: string, editor: vscode.TextEditor) {
     selectTerminal().then(it => {
         if (it && typeof rootPath !== 'undefined') {
-            processHeader(it, file, rootPath, editor);
+            processHeaderLibs(it, file, rootPath, editor);
         }
     });
 }
 
-function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>) {
+function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>, libs: Array<string>) {
     var separator = '\\';
     if (isTermLinux(t.name)) {
         separator = '/'
@@ -107,7 +108,13 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
         buildCmd += " " + dir + separator + header;
     }
     buildCmd += " -Wall"
+
+    ch.appendLine(`Libs: ${libs.toString()}`)
     ch.appendLine("Command:")
+
+    for (var l of libs) {
+        buildCmd += " -l" + l;
+    }
     ch.appendLine(buildCmd)
     if (os.type().toLocaleLowerCase().includes("windows")) {
         console.log(`${TAG} run: windows`);
@@ -142,18 +149,46 @@ function build(buildCmd: string, separator: string, out: string, t: vscode.Termi
     });
 }
 
-function processHeader(t: vscode.Terminal, file: string, rootPath: string, editor: vscode.TextEditor) {
+function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, editor: vscode.TextEditor) {
     if (file.endsWith(".c")) {
-        run(t, file, rootPath, []);
+        var libs: Array<string> = [];
+        editor.document.getText().split('\n').forEach(it => {
+            it = it.trim();
+            if (it.startsWith(LIB_TAG)) {
+                it = it.split(':')[1].trim();
+
+                let potentialLibs = it.split(' ');
+                if (potentialLibs.length >= 1) {
+                    for (var l of potentialLibs) {
+                        if (!libs.includes(l)) {
+                            libs.push(l);
+                        }
+                    }
+                }
+            }
+        });
+        run(t, file, rootPath, [], libs);
         return;
     }
     const separator = os.type().toLocaleLowerCase().includes("windows") ? '\\' : '/';
 
     var foundHeaders: Array<string> = [];
+    var libs: Array<string> = [];
     editor.document.getText().split('\n').forEach(it => {
         it = it.trim()
         if (it.startsWith("#include") && it.includes("\"")) {
             foundHeaders.push(it.substring(it.indexOf('\"', 0) + 1, it.lastIndexOf('\"')));
+        } else if (it.startsWith(LIB_TAG)) {
+            it = it.split(':')[1].trim();
+
+            let potentialLibs = it.split(' ');
+            if (potentialLibs.length >= 1) {
+                for (var l of potentialLibs) {
+                    if (!libs.includes(l)) {
+                        libs.push(l);
+                    }
+                }
+            }
         }
     })
 
@@ -186,7 +221,7 @@ function processHeader(t: vscode.Terminal, file: string, rootPath: string, edito
                 vscode.window.showWarningMessage(header + " not found");
             }
         } else {
-            run(t, file, rootPath, localHeaders);
+            run(t, file, rootPath, localHeaders, libs);
         }
     };
     inputHeader(foundHeaders[i]);

@@ -17,6 +17,14 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.9.0
+
+Added feature to link libraries in compile command.
+
+**How ?** <br>
+Add this line in your code:<br>
+`// libs:libname1 libname2 libnameN`
+
 ### 1.8.1
 
 Added fix for accessing paths in windows when partition is different
