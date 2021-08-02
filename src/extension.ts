@@ -75,7 +75,7 @@ function invoke(rootPath: string | undefined, file: string, editor: vscode.TextE
     });
 }
 
-function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>, libs: Array<string>) {
+function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>, libs: Array<string>, hasMath: boolean) {
     var separator = '\\';
     if (isTermLinux(t.name)) {
         separator = '/'
@@ -115,6 +115,10 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     for (var l of libs) {
         buildCmd += " -l" + l;
     }
+    if (hasMath) {
+        buildCmd += " -lm";
+    }
+
     ch.appendLine(buildCmd)
     if (os.type().toLocaleLowerCase().includes("windows")) {
         console.log(`${TAG} run: windows`);
@@ -152,6 +156,7 @@ function build(buildCmd: string, separator: string, out: string, t: vscode.Termi
 function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, editor: vscode.TextEditor) {
     if (file.endsWith(".c")) {
         var libs: Array<string> = [];
+        let hasMath = false;
         editor.document.getText().split('\n').forEach(it => {
             it = it.trim();
             if (it.startsWith(LIB_TAG)) {
@@ -166,14 +171,19 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
                     }
                 }
             }
+
+            if (!hasMath) {
+                hasMath = it.startsWith("#include") && it.includes("math.h");
+            }
         });
-        run(t, file, rootPath, [], libs);
+        run(t, file, rootPath, [], libs, hasMath);
         return;
     }
     const separator = os.type().toLocaleLowerCase().includes("windows") ? '\\' : '/';
 
     var foundHeaders: Array<string> = [];
     var libs: Array<string> = [];
+    let hasMath = false;
     editor.document.getText().split('\n').forEach(it => {
         it = it.trim()
         if (it.startsWith("#include") && it.includes("\"")) {
@@ -189,6 +199,10 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
                     }
                 }
             }
+        }
+
+        if (!hasMath) {
+            hasMath = it.startsWith("#include") && it.includes("math.h");
         }
     })
 
@@ -221,7 +235,7 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
                 vscode.window.showWarningMessage(header + " not found");
             }
         } else {
-            run(t, file, rootPath, localHeaders, libs);
+            run(t, file, rootPath, localHeaders, libs, hasMath);
         }
     };
     inputHeader(foundHeaders[i]);

@@ -17,6 +17,10 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 1.9.1
+
+Link math library when included `math.h`
+
 ### 1.9.0
 
 Added feature to link libraries in compile command.
