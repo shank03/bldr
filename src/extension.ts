@@ -68,6 +68,7 @@ export function deactivate() {
 }
 
 function invoke(rootPath: string | undefined, file: string, editor: vscode.TextEditor) {
+    vscode.commands.executeCommand('workbench.action.files.save');
     selectTerminal().then(it => {
         if (it && typeof rootPath !== 'undefined') {
             processHeaderLibs(it, file, rootPath, editor);

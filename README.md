@@ -17,6 +17,13 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
+### 2.0.0
+
+Automatically save the current editor file when running command.
+
+<details>
+<summary>Click to expand previous notes</summary>
+
 ### 1.9.1
 
 Link math library when included `math.h`
@@ -71,5 +78,6 @@ Create an output channel to show errors clearly
 ### 1.0.0
 
 Initial release of Builder
+</details>
 
 **Enjoy!**
