@@ -31,7 +31,10 @@ export function activate(context: vscode.ExtensionContext) {
                     });
                 }
             } else {
-                vscode.window.showInformationMessage("Please open active C/C++ file");
+                vscode.window.showInformationMessage('No active C/C++ file', {
+                    modal: true,
+                    detail: 'Please give focus to the C/C++ file you want to compile.'
+                });
             }
         }
     });
@@ -78,7 +81,8 @@ function invoke(rootPath: string | undefined, file: string, editor: vscode.TextE
 
 function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Array<string>, libs: Array<string>, hasMath: boolean) {
     var separator = '\\';
-    if (isTermLinux(t.name)) {
+    const isWin: boolean = os.type().toLocaleLowerCase().includes("windows");
+    if (!isWin) {
         separator = '/'
         const sepCount = file.split('\\').length
         for (let i = 0; i < sepCount; i++) {
@@ -95,7 +99,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     }
     var out = "out" + separator + file.split('.')[0];
 
-    if (os.type().toLocaleLowerCase().includes("windows")) {
+    if (isWin) {
         out += ".exe";
     }
 
@@ -104,6 +108,9 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     ch.appendLine("Building " + file);
 
     const { exec } = require('child_process');
+
+    out = "\"" + out + "\"";
+    file = "\"" + file + "\"";
     var buildCmd = "cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file;
     for (var header of headersImp) {
         buildCmd += " " + dir + separator + header;
@@ -121,7 +128,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
     }
 
     ch.appendLine(buildCmd)
-    if (os.type().toLocaleLowerCase().includes("windows")) {
+    if (isWin) {
         console.log(`${TAG} run: windows`);
         exec("cd", (_: any, stdout: string, __: any) => {
             console.log(`${TAG} run: rootPart: ${rootPath.charAt(0).toLowerCase()}; currPart: ${stdout.charAt(0).toLowerCase()}`);
@@ -143,10 +150,15 @@ function build(buildCmd: string, separator: string, out: string, t: vscode.Termi
         if (err) {
             ch.appendLine(stderr);
         } else {
-            ch.hide();
-
             t.show();
-            if (isTermLinux(t.name)) {
+            if (t.name === "cmd") {
+                separator = "\\";
+                const sepCount = out.split('/').length
+                for (let i = 0; i < sepCount; i++) {
+                    out = out.replace('/', separator);
+                }
+                t.sendText("cls");
+            } else {
                 t.sendText("clear");
             }
             t.sendText("." + separator + out);
@@ -240,10 +252,6 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
         }
     };
     inputHeader(foundHeaders[i]);
-}
-
-function isTermLinux(name: string) {
-    return name !== "cmd" && name !== "powershell";
 }
 
 function getTermDetail(name: string) {
