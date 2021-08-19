@@ -39,6 +39,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let cleanExecs = vscode.commands.registerCommand('bldr.clear.execs', () => {
+        const path = vscode.workspace.rootPath;
+        if (path) {
+            deleteExecs(path);
+        }
+    });
+
     let showTerm = vscode.commands.registerCommand('bldr.terminal', () => {
         if (ensureTerminalExists()) {
             selectTerminal().then(it => {
@@ -63,6 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(showTerm);
     context.subscriptions.push(debugFile);
     context.subscriptions.push(genFormat);
+    context.subscriptions.push(cleanExecs);
 }
 
 // this method is called when your extension is deactivated
@@ -103,7 +111,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
         out += ".exe";
     }
 
-    ch.show();
+    ch.show(true);
     ch.clear();
     ch.appendLine("Building " + file);
 
@@ -301,6 +309,26 @@ function ensureTerminalExists(): boolean {
 }
 
 //--------------------------------
+
+function deleteExecs(path: string) {
+    const separator = os.type().toLocaleLowerCase().includes("windows") ? "\\" : "/";
+    fs.readdirSync(path).forEach(file => {
+        file = path + separator + file;
+        if (fs.existsSync(file)) {
+            if (fs.lstatSync(file).isDirectory()) {
+                deleteExecs(file);
+            }
+            if (fs.lstatSync(file).isFile() && (file.endsWith(".exe") || !file.includes("."))) {
+                try {
+                    fs.unlinkSync(file);
+                    console.log(TAG, "Deleted: " + file);
+                } catch (error) {
+                    console.log(TAG, "Exec Del: " + error);
+                }
+            }
+        }
+    });
+}
 
 function createFileOrFolder(taskType: 'file' | 'folder', relativePath?: string) {
     relativePath = relativePath || '/';

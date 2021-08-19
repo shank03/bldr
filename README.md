@@ -17,12 +17,17 @@ It creates and `out` dir in your workspace where the compiled programs are store
 
 ## Release Notes
 
-### 2.0.1
+### 2.1.0
 
-Improved execution on different terminals.
+- Fixed editor focus bugs
+- Added a command to clean (delete) all the built executable files.
 
 <details>
 <summary>Click to expand previous notes</summary>
+
+### 2.0.1
+
+Improved execution on different terminals.
 
 ### 2.0.0
 
