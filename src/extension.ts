@@ -6,6 +6,7 @@ import * as os from 'os';
 let ch = vscode.window.createOutputChannel("C/C++ Build");
 const TAG = "Build [C/C++]:";
 const LIB_TAG = "// libs:";
+const TERM_NAME = "C/C++ Build";
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
@@ -23,13 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
                     console.log(`${TAG} out folder doesn't exist... creating`);
                     createFileOrFolder('folder', "out");
                 }
-                if (ensureTerminalExists()) {
-                    invoke(rootPath, file, editor);
-                } else {
-                    vscode.commands.executeCommand('workbench.action.terminal.new').then(_ => {
-                        invoke(rootPath, file, editor);
-                    });
-                }
+                invoke(rootPath, file, editor);
             } else {
                 vscode.window.showInformationMessage('No active C/C++ file', {
                     modal: true,
@@ -47,15 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     let showTerm = vscode.commands.registerCommand('bldr.terminal', () => {
-        if (ensureTerminalExists()) {
-            selectTerminal().then(it => {
-                if (it) {
-                    it.show();
-                }
-            });
-        } else {
-            vscode.commands.executeCommand('workbench.action.terminal.new');
-        }
+        initializeTerminal().then(it => it.show());
     });
 
     let debugFile = vscode.commands.registerCommand('bldr.run.debug', () => {
@@ -80,7 +67,7 @@ export function deactivate() {
 
 function invoke(rootPath: string | undefined, file: string, editor: vscode.TextEditor) {
     vscode.commands.executeCommand('workbench.action.files.save');
-    selectTerminal().then(it => {
+    initializeTerminal().then(it => {
         if (it && typeof rootPath !== 'undefined') {
             processHeaderLibs(it, file, rootPath, editor);
         }
@@ -160,7 +147,7 @@ function build(buildCmd: string, separator: string, out: string, t: vscode.Termi
         } else {
             t.show();
             separator = "/";
-            if (t.name === "cmd") {
+            if (path.basename(vscode.env.shell) === "cmd.exe") {
                 separator = "\\";
                 const sepCount = out.split('/').length
                 for (let i = 0; i < sepCount; i++) {
@@ -263,49 +250,22 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
     inputHeader(foundHeaders[i]);
 }
 
-function getTermDetail(name: string) {
-    switch (name) {
-        case "bash":
-            return "Bash";
-
-        case "wsl":
-            return "WSL Bash";
-
-        case "cmd":
-            return "Command Prompt";
-
-        case "powershell":
-            return "Windows Powershell";
-
-        default:
-            return "N/A";
-    }
-}
-
-//------------------------------
-
-async function selectTerminal(): Promise<vscode.Terminal | undefined> {
-    interface PickItem extends vscode.QuickPickItem {
-        terminal: vscode.Terminal;
-    }
+async function initializeTerminal(): Promise<vscode.Terminal> {
     const terminals = <vscode.Terminal[]>(<any>vscode.window).terminals;
-    if (terminals.length >= 2) {
-        const items: PickItem[] = terminals.map(t => {
-            return {
-                label: t.name,
-                detail: getTermDetail(t.name),
-                terminal: t,
-            };
-        });
-        const it = await vscode.window.showQuickPick(items);
-        return it ? it.terminal : undefined;
-    } else {
-        return terminals[0];
+    if (terminals.length == 0) {
+        return vscode.window.createTerminal({ name: TERM_NAME });
     }
-}
-
-function ensureTerminalExists(): boolean {
-    return (<any>vscode.window).terminals.length !== 0;
+    var terminal: vscode.Terminal | undefined = undefined;
+    for (let i = 0; i < terminals.length; i++) {
+        if (terminals[i].name === TERM_NAME) {
+            terminal = terminals[i];
+            break;
+        }
+    }
+    if (!terminal) {
+        return vscode.window.createTerminal({ name: TERM_NAME });
+    }
+    return terminal;
 }
 
 //--------------------------------
