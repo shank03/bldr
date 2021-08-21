@@ -10,6 +10,9 @@ Builds your active C/C++ file with one click.
 
 It creates and `out` dir in your workspace where the compiled programs are stored and run.
 
+You can link libraries in compile command, just add this line in your code:<br>
+`// libs:pthread libname1 libname2 libnameN`
+
 ## Requirements
 
 - Linux: nothing needed
