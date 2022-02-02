@@ -106,7 +106,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
 
     out = "\"" + out + "\"";
     file = "\"" + file + "\"";
-    var buildCmd = "cd " + rootPath + " && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file;
+    var buildCmd = "cd \"" + rootPath + "\" && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file;
     for (var header of headersImp) {
         buildCmd += " " + dir + separator + header;
     }
@@ -145,6 +145,8 @@ function build(buildCmd: string, separator: string, out: string, t: vscode.Termi
         if (err) {
             ch.appendLine(stderr);
         } else {
+            ch.appendLine("Build Success");
+
             t.show();
             separator = "/";
             if (path.basename(vscode.env.shell) === "cmd.exe") {

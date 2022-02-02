@@ -3,7 +3,7 @@
 	"displayName": "Builder",
 	"description": "Build and run C/C++ files.",
 	"publisher": "shank03",
-	"version": "2.1.1",
+	"version": "2.1.2",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/shank03/bldr.git"
@@ -19,7 +19,7 @@
 		"onCommand:bldr.terminal",
 		"onCommand:bldr.run.debug",
 		"onCommand:bldr.c_format",
-        "onCommand:bldr.clear.execs"
+		"onCommand:bldr.clear.execs"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -52,10 +52,10 @@
 				"command": "bldr.c_format",
 				"title": "[Bldr]: Generate .clang formatter file [C/C++]"
 			},
-            {
-                "command": "bldr.clear.execs",
-                "title": "[Bldr]: Clean all the built executable files"
-            }
+			{
+				"command": "bldr.clear.execs",
+				"title": "[Bldr]: Clean all the built executable files"
+			}
 		],
 		"menus": {
 			"editor/title": [

@@ -20,13 +20,18 @@ You can link libraries in compile command, just add this line in your code:<br>
 
 ## Release Notes
 
+### 2.1.2
+
+- Fixed executing build command in WSL
+- Channel output print whether build was success
+
+<details>
+<summary>Click to expand previous notes</summary>
+
 ### 2.1.1
 
 Compiled program will now be executed in separate terminal by name `C/C++ Build`.<br>
 So that it doesn't interfere with ongoing processe(s).
-
-<details>
-<summary>Click to expand previous notes</summary>
 
 ### 2.1.0
 
