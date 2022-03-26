@@ -1,12 +1,37 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import * as vscode from 'vscode';
 
 let ch = vscode.window.createOutputChannel("C/C++ Build");
 const TAG = "Build [C/C++]:";
 const LIB_TAG = "// libs:";
 const TERM_NAME = "C/C++ Build";
+
+interface Root {
+    tasks: Task[]
+    version: string
+}
+
+interface tOptions {
+    cwd: string;
+}
+
+interface Task {
+    type: string
+    label: string
+    command: string
+    args: string[]
+    options: tOptions
+    problemMatcher: string[]
+    group: object
+    detail: string
+}
+
+interface CompilerItem {
+    label: string
+    description: string
+}
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('bldr.build', () => {
@@ -36,9 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     let cleanExecs = vscode.commands.registerCommand('bldr.clear.execs', () => {
         const path = vscode.workspace.rootPath;
-        if (path) {
-            deleteExecs(path);
-        }
+        if (path) deleteExecs(path);
     });
 
     let showTerm = vscode.commands.registerCommand('bldr.terminal', () => {
@@ -46,7 +69,54 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     let debugFile = vscode.commands.registerCommand('bldr.run.debug', () => {
-        vscode.commands.executeCommand('C_Cpp.BuildAndDebugActiveFile');
+        var separator = '\\';
+        const isWin: boolean = os.type().toLocaleLowerCase().includes("windows");
+        if (!isWin) separator = '/'
+
+        const tasksFile: string = vscode.workspace.rootPath + "/.vscode/tasks.json";
+        if (!fs.existsSync(vscode.workspace.rootPath + "/.vscode")) createFileOrFolder('folder', ".vscode");
+        if (!fs.existsSync(tasksFile)) {
+            createFileOrFolder('file', ".vscode" + separator + "tasks.json");
+            fs.writeFileSync(tasksFile, cppBuildTaskData);
+        }
+        let obj: Root = JSON.parse(fs.readFileSync(tasksFile).toString());
+
+        const { exec } = require('child_process');
+        let compilerList: CompilerItem[] = [];
+        let command = (isWin ? "where" : "whereis") + " g++ gcc clang clang++ clang-cl clang-cpp cpp" + (isWin ? "" : " | grep bin");
+        exec(command, (_: any, stdout: string, __: any) => {
+            stdout.split('\n').forEach(element => {
+                while (element.includes("\r")) element = element.replace("\r", "");
+                if (element.length >= 2) {
+                    if (!isWin) {
+                        element.split(" ").forEach((subEle) => {
+                            if (subEle.includes("bin")) compilerList.push({ label: element.substring(0, element.lastIndexOf(":")), description: subEle });
+                        });
+                    } else {
+                        compilerList.push({ label: element.substring(element.lastIndexOf(separator) + 1), description: element })
+                    }
+                }
+            });
+            compilerList.sort((a, b) => b.label.localeCompare(a.label));
+            console.log("Compilers:", compilerList);
+
+            vscode.window.showQuickPick(compilerList, { placeHolder: 'Select a compiler to start debugging' }).then((val) => {
+                if (!val) return;
+
+                while (val.description.includes("\\")) val.description = val.description.replace("\\", "/");
+                obj.tasks[obj.tasks.length - 1].command = val.description;
+                obj.tasks[obj.tasks.length - 1].options.cwd = isWin ? val.description.substring(0, val.description.lastIndexOf('/')) : "${fileDirname}";
+
+                if (!isWin) {
+                    let args: string[] = [];
+                    for (var str of obj.tasks[obj.tasks.length - 1].args) args.push(str.replace(".exe", ""));
+                    obj.tasks[obj.tasks.length - 1].args = args;
+                }
+
+                fs.writeFileSync(tasksFile, JSON.stringify(obj, null, 4));
+                vscode.commands.executeCommand('C_Cpp.BuildAndDebugFile');
+            });
+        });
     });
 
     let genFormat = vscode.commands.registerCommand('bldr.c_format', () => {
@@ -93,10 +163,7 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
         }
     }
     var out = "out" + separator + file.split('.')[0];
-
-    if (isWin) {
-        out += ".exe";
-    }
+    if (isWin) out += ".exe";
 
     ch.show(true);
     ch.clear();
@@ -106,21 +173,16 @@ function run(t: vscode.Terminal, file: string, rootPath: string, headersImp: Arr
 
     out = "\"" + out + "\"";
     file = "\"" + file + "\"";
+
     var buildCmd = "cd \"" + rootPath + "\" && " + (ext === "c" ? "gcc" : "g++") + " -o " + out + " " + file;
-    for (var header of headersImp) {
-        buildCmd += " " + dir + separator + header;
-    }
+    for (var header of headersImp) buildCmd += " " + dir + separator + header;
     buildCmd += " -Wall"
 
     ch.appendLine(`Libs: ${libs.toString()}`)
     ch.appendLine("Command:")
 
-    for (var l of libs) {
-        buildCmd += " -l" + l;
-    }
-    if (hasMath) {
-        buildCmd += " -lm";
-    }
+    for (var l of libs) buildCmd += " -l" + l;
+    if (hasMath) buildCmd += " -lm";
 
     ch.appendLine(buildCmd)
     if (isWin) {
@@ -345,6 +407,37 @@ function makeFileSync(filename: string) {
         fs.createWriteStream(filename).close();
     }
 }
+
+const cppBuildTaskData = `
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: build active file",
+            "command": "",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "\${file}",
+                "-o",
+                "\${fileDirname}/\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": ""
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Task generated by Debugger."
+        }
+    ],
+    "version": "2.0.0"
+}
+`;
 
 const formatData = `# Generated from CLion C/C++ Code Style settings
 BasedOnStyle: LLVM
