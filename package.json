@@ -9,7 +9,7 @@
 		"url": "https://github.com/shank03/bldr.git"
 	},
 	"engines": {
-		"vscode": "^1.53.0"
+		"vscode": "^1.72.0"
 	},
 	"categories": [
 		"Other"
@@ -88,16 +88,16 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/glob": "^7.1.4",
-		"@types/mocha": "^8.2.3",
-		"@types/node": "^12.20.16",
-		"@types/vscode": "^1.53.0",
-		"@typescript-eslint/eslint-plugin": "^4.28.2",
-		"@typescript-eslint/parser": "^4.28.2",
-		"eslint": "^7.30.0",
-		"glob": "^7.1.7",
-		"mocha": "^8.4.0",
-		"typescript": "^4.3.5",
-		"vscode-test": "^1.5.2"
+		"@types/glob": "^8.0.0",
+		"@types/mocha": "^10.0.0",
+		"@types/node": "^16.x",
+		"@types/vscode": "^1.72.0",
+		"@typescript-eslint/eslint-plugin": "^5.38.1",
+        "@typescript-eslint/parser": "^5.38.1",
+		"eslint": "^8.24.0",
+		"glob": "^8.0.3",
+		"mocha": "^10.0.0",
+        "typescript": "^4.8.4",
+        "vscode-test": "^1.5.2"
 	}
 }
