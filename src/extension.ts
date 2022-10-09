@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 let ch = vscode.window.createOutputChannel("C/C++ Build");
 const TAG = "Build [C/C++]:";
 const LIB_TAG = "// libs:";
-const TERM_NAME = "C/C++ Build";
 
 interface Root {
     tasks: Task[]
@@ -137,7 +136,7 @@ export function deactivate() {
 
 function invoke(rootPath: string | undefined, file: string, editor: vscode.TextEditor) {
     vscode.commands.executeCommand('workbench.action.files.save');
-    initializeTerminal().then(it => {
+    initializeTerminal("C/C++ Build").then(it => {
         if (it && typeof rootPath !== 'undefined') {
             processHeaderLibs(it, file, rootPath, editor);
         }
@@ -259,7 +258,7 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
     let hasMath = false;
     editor.document.getText().split('\n').forEach(it => {
         it = it.trim()
-        if (it.startsWith("#include") && it.includes("\"")) {
+        if (it.startsWith("#include") && it.includes("\"") && !it.includes(".hpp")) {
             foundHeaders.push(it.substring(it.indexOf('\"', 0) + 1, it.lastIndexOf('\"')));
         } else if (it.startsWith(LIB_TAG)) {
             it = it.split(':')[1].trim();
@@ -314,21 +313,22 @@ function processHeaderLibs(t: vscode.Terminal, file: string, rootPath: string, e
     inputHeader(foundHeaders[i]);
 }
 
-async function initializeTerminal(): Promise<vscode.Terminal> {
+async function initializeTerminal(termName: string | undefined = undefined): Promise<vscode.Terminal> {
     const terminals = <vscode.Terminal[]>(<any>vscode.window).terminals;
-    if (terminals.length == 0) {
-        return vscode.window.createTerminal({ name: TERM_NAME });
-    }
+    if (terminals.length == 0) return vscode.window.createTerminal({});
+
     var terminal: vscode.Terminal | undefined = undefined;
-    for (let i = 0; i < terminals.length; i++) {
-        if (terminals[i].name === TERM_NAME) {
-            terminal = terminals[i];
-            break;
+    if (termName) {
+        for (let i = 0; i < terminals.length; i++) {
+            if (terminals[i].name === termName) {
+                terminal = terminals[i];
+                break;
+            }
         }
+    } else {
+        terminal = terminals[0];
     }
-    if (!terminal) {
-        return vscode.window.createTerminal({ name: TERM_NAME });
-    }
+    if (!terminal) return vscode.window.createTerminal({ name: termName });
     return terminal;
 }
 
@@ -339,9 +339,8 @@ function deleteExecs(path: string) {
     fs.readdirSync(path).forEach(file => {
         file = path + separator + file;
         if (fs.existsSync(file)) {
-            if (fs.lstatSync(file).isDirectory()) {
-                deleteExecs(file);
-            }
+            if (fs.lstatSync(file).isDirectory()) deleteExecs(file);
+
             if (fs.lstatSync(file).isFile() && (file.endsWith(".exe") || !file.includes("."))) {
                 try {
                     fs.unlinkSync(file);
@@ -357,9 +356,8 @@ function deleteExecs(path: string) {
 function createFileOrFolder(taskType: 'file' | 'folder', relativePath?: string) {
     relativePath = relativePath || '/';
     const wfolders = vscode.workspace.workspaceFolders;
-    if (typeof wfolders === 'undefined') {
-        return;
-    }
+    if (typeof wfolders === 'undefined') return;
+
     const projectRoot = wfolders[0].uri.fsPath;
     if (path.resolve(relativePath) === relativePath)
         relativePath = relativePath.substring(projectRoot.length).replace(/\\/g, "/");
@@ -395,17 +393,14 @@ function makefolders(files: string[]) {
 
 function makeDirSync(dir: string) {
     if (fs.existsSync(dir)) return;
-    if (!fs.existsSync(path.dirname(dir))) {
-        makeDirSync(path.dirname(dir));
-    }
+    if (!fs.existsSync(path.dirname(dir))) makeDirSync(path.dirname(dir));
     fs.mkdirSync(dir);
 }
 
 function makeFileSync(filename: string) {
-    if (!fs.existsSync(filename)) {
-        makeDirSync(path.dirname(filename));
-        fs.createWriteStream(filename).close();
-    }
+    if (fs.existsSync(filename)) return;
+    makeDirSync(path.dirname(filename));
+    fs.createWriteStream(filename).close();
 }
 
 const cppBuildTaskData = `
@@ -440,22 +435,31 @@ const cppBuildTaskData = `
 `;
 
 const formatData = `# Generated from CLion C/C++ Code Style settings
-BasedOnStyle: LLVM
+BasedOnStyle: Google
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
+AlignAfterOpenBracket: true
+AlignArrayOfStructures: Right
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveDeclarations: AcrossComments
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: Left
 AlignOperands: true
+AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Always
-AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+BitFieldColonSpacing: Both
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false
@@ -467,31 +471,49 @@ BraceWrapping:
   AfterUnion: false
   BeforeCatch: false
   BeforeElse: false
+  BeforeLambdaBody: false
   IndentBraces: false
   SplitEmptyFunction: false
-  SplitEmptyRecord: true
-BreakBeforeBinaryOperators: None
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBinaryOperators: All
+BreakBeforeConceptDeclarations: Always
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
 ColumnLimit: 0
 CompactNamespaces: false
 ContinuationIndentWidth: 8
+Cpp11BracedListStyle: false
+EmptyLineBeforeAccessModifier: LogicalBlock
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+IndentAccessModifiers: false
 IndentCaseLabels: true
-IndentPPDirectives: None
+IndentExternBlock: Indent
+IndentGotoLabels: true
+IndentPPDirectives: AfterHash
 IndentWidth: 4
-KeepEmptyLinesAtTheStartOfBlocks: true
-MaxEmptyLinesToKeep: 2
+IndentWrappedFunctionNames: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+LambdaBodyIndentation: Signature
+MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
-ObjCSpaceAfterProperty: false
+ObjCSpaceAfterProperty: true
 ObjCSpaceBeforeProtocolList: true
-PointerAlignment: Right
-ReflowComments: false
+PackConstructorInitializers: CurrentLine
+PointerAlignment: Left
+QualifierAlignment: Left
+ReferenceAlignment: Left
+ReflowComments: true
+SeparateDefinitionBlocks: Always
+SortIncludes: CaseSensitive
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: false
+SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeCpp11BracedList: false
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: true
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
@@ -504,5 +526,6 @@ SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 TabWidth: 4
+UseCRLF: false
 UseTab: Never
 `;
